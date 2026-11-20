@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SMART GREENHOUSE: Болашақтың автономды жылыжайы | 3D Digital Twin</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- 3D WebGL Canvas Viewport -->
+    <div id="canvas-container"></div>
+
+    <!-- 3D Hotspots Layer (High Z-Index, Unoccluded) -->
+    <div id="hotspots-layer"></div>
+
+    <!-- Floating Mobile Push Notifications Stack (Top Center) -->
+    <div id="push-toast-stack"></div>
+
+    <!-- UI Glassmorphism Overlay Layer -->
+    <div class="ui-overlay">
+
+        <!-- Top Header Navigation -->
+        <header class="top-nav">
+            <div class="brand-badge glass-panel">
+                <div class="brand-logo-icon">🌱</div>
+                <div>
+                    <h1 class="brand-title">SMART GREENHOUSE</h1>
+                    <p class="brand-subtitle">Ақылды жылыжай • Датчиктер &amp; Мобильді бақылау 3D</p>
+                </div>
+            </div>
+
+            <div class="top-actions">
+                <button id="btn-manager-phone" class="icon-btn phone-nav-btn" title="Теплица басшысының мобильді бақылау пульті">
+                    <span class="btn-icon">📲</span>
+                    <span>Басшы телефоны</span>
+                    <span id="top-alert-badge" class="alert-count-badge zero">0</span>
+                </button>
+                <button id="btn-xray" class="icon-btn" title="Қаңқаны жасыру (Рентген көрінісі)">
+                    <span class="btn-icon">👁️</span>
+                    <span>Рентген</span>
+                </button>
+                <button id="btn-auto-rotate" class="icon-btn" title="Авто-айналу режимі">
+                    <span class="btn-icon">🔄</span>
+                    <span>360°</span>
+                </button>
+                <button id="btn-sound" class="icon-btn active" title="Дыбыс эффектілері">
+                    <span class="btn-icon">🔊</span>
+                    <span>Дыбыс</span>
+                </button>
+                <button id="btn-qr-modal" class="icon-btn" title="Қазыларға телефоннан ашу үшін QR-код">
+                    <span class="btn-icon">📱</span>
+                    <span>QR</span>
+                </button>
+                <button id="btn-help-modal" class="icon-btn" title="Ғылыми жоба туралы мәлімет">
+                    <span class="btn-icon">ℹ️</span>
+                    <span>Жоба</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Middle Workspace: Telemetry/Sensors (Left) and Controls (Right) -->
+        <main class="main-workspace">
+
+            <!-- Left Panel: Live Telemetry & Sensor Types Catalog -->
+            <section class="left-dashboard glass-panel" id="panel-left-dashboard">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <span>📊 Жылыжай деректері</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="author-chip">Сабыржан Рамазан</span>
+                        <button class="mobile-sheet-close-btn" data-close-sheet="left" title="Жабу">&times;</button>
+                    </div>
+                </div>
+
+                <!-- Left Panel Switcher Tabs -->
+                <div class="panel-tabs">
+                    <button class="panel-tab-btn active" data-left-tab="telemetry">📊 Телеметрия</button>
+                    <button class="panel-tab-btn" data-left-tab="sensors">🔬 Датчиктер (5)</button>
+                </div>
+
+                <!-- TAB 1: Live Telemetry -->
+                <div id="left-pane-telemetry" class="tab-content-pane">
+                    <div class="metric-grid">
+                        <!-- Temperature (DHT22) -->
+                        <div class="metric-card">
+                            <div class="metric-label"><span>🌡️ Температура</span></div>
+                            <div class="metric-value" id="telemetry-temp">26.0 °C</div>
+                            <div class="metric-sub" id="telemetry-temp-status">DHT22 • Қалыпты</div>
+                        </div>
+
+                        <!-- Air Humidity (DHT22) -->
+                        <div class="metric-card">
+                            <div class="metric-label"><span>💨 Ауа ылғалдылығы</span></div>
+                            <div class="metric-value" id="telemetry-air-humidity">64%</div>
+                            <div class="metric-sub">DHT22 • Оңтайлы</div>
+                        </div>
+
+                        <!-- Light Panel Sensor & Solar Power -->
+                        <div class="metric-card full-width">
+                            <div class="control-title-row">
+                                <span class="metric-label">☀️ Панель жарық датчигі (BH1750)</span>
+                                <span class="metric-value" style="font-size:15px;" id="telemetry-lux">48 500 Lux</span>
+                            </div>
+                            <div class="metric-sub" style="margin-top:4px; display:flex; justify-content:space-between;">
+                                <span>⚡ <strong id="telemetry-power">2.00 W</strong> (<strong id="telemetry-voltage">5.00 V</strong>, <strong id="telemetry-current">400 mA</strong>)</span>
+                                <span id="telemetry-growlight-status" style="color:#94a3b8; font-weight:700;">💡 Фито: ӨШІРУЛІ</span>
+                            </div>
+                        </div>
+
+                        <!-- Soil Moisture Metric -->
+                        <div class="metric-card full-width">
+                            <div class="control-title-row">
+                                <span class="metric-label">💧 Топырақ ылғалдылығы (YL-69)</span>
+                                <span class="metric-value" id="telemetry-moisture">65%</span>
+                            </div>
+                            <div class="progress-container">
+                                <div id="moisture-progress-bar" class="progress-bar bg-emerald-500" style="width: 65%;"></div>
+                            </div>
+                            <div class="metric-sub">Оңтайлы шек: 30% - 80% (&gt;85% шіру қаупі)</div>
+                        </div>
+
+                        <!-- Water Pump & Fan States -->
+                        <div class="metric-card">
+                            <div class="metric-label">
+                                <span id="pump-indicator-badge" class="badge-gray">⚙️</span>
+                                <span>Сорғы</span>
+                            </div>
+                            <div style="margin-top: 4px;">
+                                <span id="telemetry-pump-status" class="telemetry-status-badge inactive">ӨШІРУЛІ</span>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-label">
+                                <span>🌀 Желдеткіш</span>
+                            </div>
+                            <div style="margin-top: 4px;">
+                                <span id="telemetry-fan-status" class="telemetry-status-badge inactive">ӨШІРУЛІ</span>
+                            </div>
+                        </div>
+
+                        <!-- Water Reservoir Level -->
+                        <div class="metric-card full-width">
+                            <div class="control-title-row">
+                                <span class="metric-label">🚰 Резервуардағы су (HC-SR04)</span>
+                                <span class="metric-value" id="telemetry-reservoir">100%</span>
+                            </div>
+                            <div class="progress-container">
+                                <div id="reservoir-progress-bar" class="progress-bar bg-blue-500" style="width: 100%;"></div>
+                            </div>
+                            <div style="margin-top: 7px; display: flex; justify-content: space-between; align-items: center;">
+                                <span class="metric-sub" id="telemetry-reservoir-note">Қоры жеткілікті</span>
+                                <button id="btn-refill-water" class="pill-btn" style="color: #38bdf8;">🔄 Су құю</button>
+                            </div>
+                        </div>
+
+                        <!-- Plants Health Status (Tomatoes & Cucumbers) -->
+                        <div class="metric-card full-width">
+                            <div class="metric-label"><span>🌿 Өсімдіктер күйі (AI + MQ-135)</span></div>
+                            <div class="crop-health-grid">
+                                <div class="crop-status-chip" id="crop-chip-tomato1" data-focus-cam="tomato1">
+                                    <span>🍅 Помидор</span>
+                                    <span class="crop-status-state" id="crop-state-tomato1">● Сау</span>
+                                </div>
+                                <div class="crop-status-chip" id="crop-chip-cucumber1" data-focus-cam="cucumber1">
+                                    <span>🥒 Қияр</span>
+                                    <span class="crop-status-state" id="crop-state-cucumber1">● Сау</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: Sensor Types Catalog (Датчиктердің түрлері) -->
+                <div id="left-pane-sensors" class="tab-content-pane hidden-pane">
+                    <div class="sensor-list">
+                        <div class="sensor-item-card" id="sensor-card-dht22" data-sensor-focus="dht22">
+                            <div class="sensor-item-top">
+                                <span class="sensor-item-name">🌡️ Температура &amp; Ауа ылғалдылығы</span>
+                                <span class="sensor-item-model">DHT22</span>
+                            </div>
+                            <div class="sensor-item-bottom">
+                                <span>Цифрлық микроклимат датчигі</span>
+                                <span class="sensor-reading-pill" id="sensor-read-dht22">26°C / 64%</span>
+                            </div>
+                        </div>
+
+                        <div class="sensor-item-card" id="sensor-card-moisture" data-sensor-focus="sensor">
+                            <div class="sensor-item-top">
+                                <span class="sensor-item-name">💧 Топырақ ылғалдылығы</span>
+                                <span class="sensor-item-model">YL-69</span>
+                            </div>
+                            <div class="sensor-item-bottom">
+                                <span>Тамыр ылғалын өлшеуіш</span>
+                                <span class="sensor-reading-pill" id="sensor-read-moisture">65%</span>
+                            </div>
+                        </div>
+
+                        <div class="sensor-item-card" id="sensor-card-light" data-sensor-focus="light_sensor">
+                            <div class="sensor-item-top">
+                                <span class="sensor-item-name">☀️ Панель жарық датчигі</span>
+                                <span class="sensor-item-model">BH1750 / LDR</span>
+                            </div>
+                            <div class="sensor-item-bottom">
+                                <span>Люксметр + Авто фитожарық</span>
+                                <span class="sensor-reading-pill" id="sensor-read-light">48.5k Lux</span>
+                            </div>
+                        </div>
+
+                        <div class="sensor-item-card" id="sensor-card-water" data-sensor-focus="water_level">
+                            <div class="sensor-item-top">
+                                <span class="sensor-item-name">🚰 Резервуар су деңгейі</span>
+                                <span class="sensor-item-model">HC-SR04</span>
+                            </div>
+                            <div class="sensor-item-bottom">
+                                <span>Ультрадыбыстық су қоры датчигі</span>
+                                <span class="sensor-reading-pill" id="sensor-read-water">100%</span>
+                            </div>
+                        </div>
+
+                        <div class="sensor-item-card" id="sensor-card-health" data-sensor-focus="health_sensor">
+                            <div class="sensor-item-top">
+                                <span class="sensor-item-name">🌿 Шіру &amp; Денсаулық датчигі</span>
+                                <span class="sensor-item-model">AI + MQ-135</span>
+                            </div>
+                            <div class="sensor-item-bottom">
+                                <span>Жапырақ пен этилен газы сканері</span>
+                                <span class="sensor-reading-pill" id="sensor-read-health">Сау</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p style="font-size: 10.5px; color: var(--text-secondary); margin-top: 8px; text-align: center;">
+                        🔍 Кез келген датчикті бассаңыз, камера 3D макетте соған жақындайды.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Right Panel: Interactive Sliders, Fault Simulator & Engineering Controls -->
+            <section class="right-controls glass-panel" id="panel-right-controls">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <span>🎛️ Басқару панелі</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="author-chip">Интерактивті</span>
+                        <button class="mobile-sheet-close-btn" data-close-sheet="right" title="Жабу">&times;</button>
+                    </div>
+                </div>
+
+                <!-- Slider 1: Sunlight / Light Sensor Panel -->
+                <div class="control-group">
+                    <div class="control-title-row">
+                        <label for="sunlight-slider" class="control-label">
+                            <span>☀️ Жарық датчигі / Күн сәулесі</span>
+                        </label>
+                        <span id="sunlight-value" class="control-val-badge">100%</span>
+                    </div>
+                    <input type="range" id="sunlight-slider" class="slider-input" min="0" max="100" value="100" step="1">
+                    <div class="preset-pills">
+                        <button class="pill-btn" data-preset-sun="5">🌙 Түн (Фитожарық)</button>
+                        <button class="pill-btn" data-preset-sun="45">⛅ Бұлтты</button>
+                        <button class="pill-btn" data-preset-sun="100">☀️ Ашық күн</button>
+                    </div>
+                </div>
+
+                <!-- Slider 2: Temperature Sensor (DHT22) -->
+                <div class="control-group">
+                    <div class="control-title-row">
+                        <label for="temp-slider" class="control-label">
+                            <span>🌡️ Температура (DHT22)</span>
+                        </label>
+                        <span id="temp-slider-value" class="control-val-badge">26 °C</span>
+                    </div>
+                    <input type="range" id="temp-slider" class="slider-input" min="10" max="44" value="26" step="1">
+                </div>
+
+                <!-- Slider 3: Soil Moisture (YL-69) -->
+                <div class="control-group">
+                    <div class="control-title-row">
+                        <label for="moisture-slider" class="control-label">
+                            <span>🪴 Топырақ ылғалдылығы</span>
+                        </label>
+                        <span id="moisture-value" class="control-val-badge">65%</span>
+                    </div>
+                    <input type="range" id="moisture-slider" class="slider-input" min="5" max="95" value="65" step="1">
+                    <div class="preset-pills">
+                        <button class="pill-btn" data-preset-moisture="15" style="border-color: rgba(244, 63, 94, 0.4); color: #fb7185;">15% Құрғақ</button>
+                        <button class="pill-btn" data-preset-moisture="55">55% Оңтайлы</button>
+                        <button class="pill-btn" data-preset-moisture="90" style="border-color: rgba(245, 158, 11, 0.4); color: #fcd34d;">90% Артық ылғал</button>
+                    </div>
+                </div>
+
+                <!-- Fault / Emergency Scenario Triggers (For Demoing Phone Signals!) -->
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>🚨 Басшыға автоматты сигнал сынау</span>
+                    </div>
+                    <div class="fault-grid">
+                        <button class="fault-btn" id="btn-sim-rot-tomato">🍅 Помидор шіруі</button>
+                        <button class="fault-btn" id="btn-sim-rot-cucumber">🥒 Қияр шіруі</button>
+                        <button class="fault-btn warn-amber" id="btn-sim-empty-water">🚰 Су бітті (0%)</button>
+                        <button class="fault-btn warn-amber" id="btn-sim-overheat">🔥 Ыстық (40°C)</button>
+                        <button class="fault-btn restore-btn" id="btn-sim-restore-all">✅ Бәрін қалыпқа келтіру</button>
+                    </div>
+                </div>
+
+                <!-- Camera Angle Perspectives -->
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>🎥 Инженерлік ракурстар</span>
+                    </div>
+                    <div class="cam-grid">
+                        <button class="cam-btn" data-cam-preset="default">🏠 Жалпы</button>
+                        <button class="cam-btn" data-cam-preset="sensors">🔬 Датчиктер</button>
+                        <button class="cam-btn" data-cam-preset="tomatoes">🍅 Помидор</button>
+                        <button class="cam-btn" data-cam-preset="cucumbers">🥒 Қияр</button>
+                        <button class="cam-btn" data-cam-preset="light_sensor">☀️ Жарық</button>
+                        <button class="cam-btn" data-cam-preset="electronics">⚡ Плата</button>
+                    </div>
+                </div>
+
+                <!-- Quick Functional Toggles -->
+                <div class="control-group">
+                    <div style="display: flex; gap: 8px;">
+                        <button id="btn-auto-sim" class="icon-btn active" style="flex: 1; justify-content: center; font-size:11px;" title="Автоматты табиғи процесс">
+                            <span>🧪 Авто-сим</span>
+                        </button>
+                        <button id="btn-toggle-hotspots" class="icon-btn active" style="flex: 1; justify-content: center; font-size:11px;" title="3D ақпараттық нүктелер">
+                            <span>📍 Нүктелер</span>
+                        </button>
+                    </div>
+                    <button id="btn-reset-cam" class="icon-btn" style="width: 100%; justify-content: center;">
+                        <span>🔄 Камераны қалпына келтіру</span>
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Bottom Status Line -->
+        <footer class="bottom-bar">
+            <div class="action-bar-inner glass-panel">
+                <span style="font-size: 12px; color: var(--text-secondary);">
+                    💡 <strong>Кеңес:</strong> «📲 Басшы телефоны» түймесін басып, нақты уақыттағы автоматты сигналдарды көріңіз және жылыжайды қашықтан басқарыңыз.
+                </span>
+            </div>
+        </footer>
+
+        <!-- Mobile Bottom Navigation Dock (Visible on Mobile <= 900px) -->
+        <nav class="mobile-bottom-dock" id="mobile-dock">
+            <button class="mobile-dock-btn active" data-mobile-view="3d">
+                <span class="dock-icon">🌱</span>
+                <span class="dock-text">3D Макет</span>
+            </button>
+            <button class="mobile-dock-btn" data-mobile-view="telemetry">
+                <span class="dock-icon">📊</span>
+                <span class="dock-text">Телеметрия</span>
+            </button>
+            <button class="mobile-dock-btn" data-mobile-view="sensors">
+                <span class="dock-icon">🔬</span>
+                <span class="dock-text">Датчиктер</span>
+            </button>
+            <button class="mobile-dock-btn" data-mobile-view="controls">
+                <span class="dock-icon">🎛️</span>
+                <span class="dock-text">Басқару</span>
+            </button>
+            <button class="mobile-dock-btn" data-mobile-view="phone">
+                <span class="dock-icon">📲</span>
+                <span class="dock-text">Басшы</span>
+                <span id="dock-alert-badge" class="alert-count-badge zero">0</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Manager's Smartphone Remote Control & Alert Panel -->
+    <aside id="manager-phone-panel" class="manager-phone-panel">
+        <div class="phone-notch-bar">
+            <span id="phone-clock">18:55</span>
+            <div class="phone-dynamic-island"></div>
+            <span>5G 🔋96%</span>
+        </div>
+
+        <div class="phone-app-header">
+            <div>
+                <div class="phone-app-title">🌱 SmartTeplica Басшы</div>
+                <div class="phone-app-sub">● Онлайн • IoT Автоматты байланыс</div>
+            </div>
+            <button id="btn-close-phone" class="phone-close-btn" title="Жасыру">&times;</button>
+        </div>
+
+        <div class="phone-screen-body">
+            <!-- Phone Tab 1: Automatic Signals / Alerts Feed -->
+            <div id="phone-pane-alerts" class="phone-tab-pane">
+                <div id="phone-alerts-list" style="display: flex; flex-direction: column; gap: 8px;">
+                    <!-- Populated dynamically by main.js -->
+                </div>
+            </div>
+
+            <!-- Phone Tab 2: Live Mobile Monitoring -->
+            <div id="phone-pane-monitor" class="phone-tab-pane hidden-pane">
+                <div class="phone-stat-grid">
+                    <div class="phone-stat-box">
+                        <div class="phone-stat-label">🌡️ Температура</div>
+                        <div class="phone-stat-val" id="phone-stat-temp">26.0°C</div>
+                    </div>
+                    <div class="phone-stat-box">
+                        <div class="phone-stat-label">💨 Ауа ылғалы</div>
+                        <div class="phone-stat-val" id="phone-stat-air">64%</div>
+                    </div>
+                    <div class="phone-stat-box">
+                        <div class="phone-stat-label">💧 Топырақ</div>
+                        <div class="phone-stat-val" id="phone-stat-soil">65%</div>
+                    </div>
+                    <div class="phone-stat-box">
+                        <div class="phone-stat-label">🚰 Резервуар</div>
+                        <div class="phone-stat-val" id="phone-stat-water">100%</div>
+                    </div>
+                    <div class="phone-stat-box">
+                        <div class="phone-stat-label">☀️ Жарық датчигі</div>
+                        <div class="phone-stat-val" id="phone-stat-lux" style="font-size:13px;">48.5k Lx</div>
+                    </div>
+                    <div class="phone-stat-box">
+                        <div class="phone-stat-label">🌿 Дақылдар</div>
+                        <div class="phone-stat-val" id="phone-stat-crops" style="font-size:13px; color:#34d399;">Барлығы сау</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phone Tab 3: Remote Controls (Пульт) -->
+            <div id="phone-pane-remote" class="phone-tab-pane hidden-pane">
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <div class="phone-ctrl-row">
+                        <div>
+                            <div class="phone-ctrl-title">⚙️ Суару сорғысы</div>
+                            <div class="phone-ctrl-sub">Тамшылатып суару жүйесі</div>
+                        </div>
+                        <button id="phone-toggle-pump" class="phone-toggle-btn">ӨШІРУЛІ</button>
+                    </div>
+
+                    <div class="phone-ctrl-row">
+                        <div>
+                            <div class="phone-ctrl-title">🌀 Желдеткіш</div>
+                            <div class="phone-ctrl-sub">Салқындату және шіруге қарсы</div>
+                        </div>
+                        <button id="phone-toggle-fan" class="phone-toggle-btn">ӨШІРУЛІ</button>
+                    </div>
+
+                    <div class="phone-ctrl-row">
+                        <div>
+                            <div class="phone-ctrl-title">💡 Фитожарық панелі</div>
+                            <div class="phone-ctrl-sub">Жарық датчигімен байланысқан</div>
+                        </div>
+                        <button id="phone-toggle-light" class="phone-toggle-btn">АВТО</button>
+                    </div>
+
+                    <div class="phone-ctrl-row">
+                        <div>
+                            <div class="phone-ctrl-title">🚰 Резервуар толтыру</div>
+                            <div class="phone-ctrl-sub">Су қорын 100%-ға жеткізу</div>
+                        </div>
+                        <button id="phone-btn-refill" class="phone-toggle-btn on">Су құю</button>
+                    </div>
+
+                    <div class="phone-ctrl-row">
+                        <div>
+                            <div class="phone-ctrl-title">🩺 Өсімдікті емдеу</div>
+                            <div class="phone-ctrl-sub">Шіруді жою &amp; желдету</div>
+                        </div>
+                        <button id="phone-btn-cure" class="phone-toggle-btn on">Емдеу</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <nav class="phone-bottom-nav">
+            <button class="phone-nav-tab active" data-phone-tab="alerts">
+                <span>🔔</span>
+                <span>Сигналдар</span>
+            </button>
+            <button class="phone-nav-tab" data-phone-tab="monitor">
+                <span>📊</span>
+                <span>Бақылау</span>
+            </button>
+            <button class="phone-nav-tab" data-phone-tab="remote">
+                <span>🎛️</span>
+                <span>Пульт</span>
+            </button>
+        </nav>
+    </aside>
+
+    <!-- 3D Hotspot Information Modal Card -->
+    <div id="hotspot-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-head">
+                <div>
+                    <h2 id="modal-title" class="modal-title">Құрамдас бөлік</h2>
+                    <p id="modal-subtitle" class="modal-subtitle">Ғылыми сипаттамасы</p>
+                </div>
+                <button class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="modal-desc">Толық ақпарат жүктелуде...</p>
+                <div id="modal-specs" class="modal-specs-box">
+                    Техникалық сипаттамалар
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="icon-btn modal-close-btn">Түсінікті</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Code Modal (Real Offline / Wi-Fi / Online Adaptable) -->
+    <div id="qr-modal" class="modal-overlay hidden">
+        <div class="modal-card qr-modal-card">
+            <div class="modal-head">
+                <div>
+                    <h2 class="modal-title">📱 Телефоннан ашу (QR-код)</h2>
+                    <p class="modal-subtitle">Кез келген смартфонмен сканерлеп, телефоннан көріңіз</p>
+                </div>
+                <button class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body qr-modal-body">
+                <!-- Mode Switcher Tabs -->
+                <div class="qr-mode-tabs">
+                    <button class="qr-tab-btn active" id="qr-tab-wifi" data-qr-mode="wifi">📡 Wi-Fi желісі (Офлайн)</button>
+                    <button class="qr-tab-btn" id="qr-tab-online" data-qr-mode="online">🌐 Онлайн сайт</button>
+                    <button class="qr-tab-btn" id="qr-tab-custom" data-qr-mode="custom">✏️ Қолмен енгізу</button>
+                </div>
+
+                <!-- QR Display Container -->
+                <div class="qr-visual-box">
+                    <div id="qrcode-box" class="qrcode-canvas-wrapper"></div>
+                    <div class="qr-live-url-badge">
+                        <span id="qr-display-url">http://192.168.100.67:8080</span>
+                        <button id="btn-copy-qr-url" class="qr-copy-btn" title="Сілтемені көшіру">📋 Көшіру</button>
+                    </div>
+                </div>
+
+                <!-- Custom URL input row -->
+                <div id="qr-custom-input-row" class="qr-input-row hidden">
+                    <input type="text" id="qr-custom-url-input" class="qr-input-field" placeholder="http://192.168.100.67:8080">
+                    <button id="btn-generate-custom-qr" class="pill-btn active">QR жасау</button>
+                </div>
+
+                <!-- Step-by-Step Instructions -->
+                <div class="qr-instructions-box">
+                    <div class="qr-step-item">
+                        <span class="step-num">1</span>
+                        <span id="qr-step-1">Телефон мен компьютерді бір Wi-Fi желісіне (немесе телефонның точка доступасына) қосыңыз.</span>
+                    </div>
+                    <div class="qr-step-item">
+                        <span class="step-num">2</span>
+                        <span id="qr-step-2">Смартфон камерасымен осы QR-кодты сканерлеп, сілтемені ашыңыз.</span>
+                    </div>
+                    <div class="qr-step-item">
+                        <span class="step-num">3</span>
+                        <span id="qr-step-3">Қосымша телефонға толық бейімделіп (Mobile UI, 3D айналу, басшы пульті) ашылады!</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-foot" style="justify-content: center;">
+                <button class="icon-btn modal-close-btn">Түсінікті, жабу</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- About / Scientific Research Modal -->
+    <div id="help-modal" class="modal-overlay hidden">
+        <div class="modal-card" style="max-width: 600px;">
+            <div class="modal-head">
+                <div>
+                    <h2 class="modal-title">🌿 Жоба туралы мәлімет</h2>
+                    <p class="modal-subtitle">«Зерде» республикалық ғылыми жобалар байқауы</p>
+                </div>
+                <button class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <p><strong>Жоба тақырыбы:</strong> «SMART GREENHOUSE: Болашақтың автономды жылыжайы»</p>
+                <p><strong>Жобаның авторы:</strong> Сабыржан Рамазан</p>
+                <p><strong>Мақсаты:</strong> Күн энергиясы, көпфункциялы датчиктер кешені және смартфон арқылы қашықтан бақылау жүйесін біріктіре отырып, помидор, қияр және басқа да көкөніс дақылдарын автоматты күтіп-баптайтын ақылды жылыжайдың 3D цифрлық егізін (Digital Twin) ұсыну.</p>
+
+                <h4 style="color: #38bdf8; margin-top: 8px;">Орнатылған датчиктер мен жүйелер:</h4>
+                <ol style="padding-left: 20px; display: flex; flex-direction: column; gap: 6px;">
+                    <li><strong>Температура &amp; Ауа ылғалдылығы (DHT22):</strong> Микроклиматты бақылап, қызып кеткенде желдеткішті іске қосады.</li>
+                    <li><strong>Топырақ ылғалдылығы (YL-69):</strong> Ылғал 30%-дан түскенде тамшылатып суаруды бастайды, 80%-да тоқтатады.</li>
+                    <li><strong>Панель жарық датчигі (BH1750 / LDR):</strong> Жарық азайғанда LED фитожарық панелін автоматты қосады.</li>
+                    <li><strong>Су деңгейі датчигі (HC-SR04):</strong> Резервуарда су біткенде сорғыны қорғап, басшыға сигнал жібереді.</li>
+                    <li><strong>Өсімдік шіру датчигі (AI + MQ-135):</strong> Помидор немесе қияр шіри бастаса бірден анықтап, теплица басшысының телефонына шұғыл хабарлама жолдайды.</li>
+                </ol>
+            </div>
+            <div class="modal-foot">
+                <button class="icon-btn modal-close-btn">Жабу</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Initial Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="loader-spinner"></div>
+        <div class="loader-title">SMART GREENHOUSE 3D</div>
+        <div class="loader-sub">Сандық егіз (Digital Twin) моделі жүктелуде...</div>
+    </div>
+
+    <!-- Vendor Libraries (Self-contained & offline) -->
+    <script src="lib/three.min.js"></script>
+    <script src="lib/OrbitControls.js"></script>
+    <script src="lib/tween.umd.js"></script>
+    <script src="lib/qrcode.min.js"></script>
+
+    <!-- Application Modules -->
+    <script src="js/textures.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/particles.js"></script>
+    <script src="js/model.js"></script>
+    <script src="js/hotspots.js"></script>
+    <script src="js/scene.js"></script>
+    <script src="js/main.js"></script>
+
+</body>
+</html>
